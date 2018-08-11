@@ -1,0 +1,178 @@
+﻿import flash.external.ExternalInterface;
+import flash.geom.Rectangle;
+import gfx.controls.CoreList;
+import gfx.ui.InputDetails;
+import gfx.ui.NavigationCode;
+import gfx.utils.Constraints;
+/**
+ * The ScrollingList is a list component that can scroll its elements. It can instantiate list items by itself or use existing list items on the stage. A ScrollIndicator or ScrollBar component can also be attached to this list component to provide scoll feedback and control. This component is populated via a DataProvider. The dataProvider is assigned via code, as shown in the example below:
+<i>scrollingList.dataProvider = ["item1", "item2", "item3", "item4", ];</i>
+
+	<b>Inspectable Properties</b>
+	A MovieClip that derives from the ScrollingList component will have the following inspectable properties:<ul>
+	<li><i>visible</i>: Hides the component if set to false. This does not hide the attached scrollbar or any external list item renderers.</li>
+	<li><i>disabled</i>: Disables the component if set to true. This does disable both the attached scrollbar and the list items (both internally created and external renderers).</li>
+	<li><i>itemRenderer</i>: The symbol name of the ListItemRenderer. Used to create list item instances internally. Has no effect if the rendererInstanceName property is set.</li>
+	<li><i>rendererInstanceName</i>: Prefix of the external list item renderers to use with this ScrollingList component. The list item instances on the stage must be prefixed with this property value. If this property is set to the value ‘r’, then all list item instances to be used with this component must have the following values: ‘r1’, ‘r2’, ‘r3’,… The first item should have the number 1.</li>
+	<li><i>scrollBar</i>: Instance name of a ScrollBar component on the stage or a symbol name. If an instance name is specified, then the ScrollingList will hook into that instance. If a symbol name is specified, an instance of the symbol will be created by the ScrollingList.</li>
+	<li><i>margin</i>: The margin between the boundary of the list component and the list items created internally. This value has no effect if the rendererInstanceName property is set. This margin also affects the automatically generated scrollbar.</li>
+	<li><i>rowHeight</i>: The height of list item instances created internally. This value has no effect if the rendererInstanceName property is set.</li>
+	<li><i>paddingTop:</i>Extra padding at the top for the list items. This value has no effect if the rendererInstanceName property is set. Does not affect the automatically generated scrollbar.</li>
+	<li><i>paddingBottom:</i>Extra padding at the bottom for the list items. This value has no effect if the rendererInstanceName property is set. Does not affect the automatically generated scrollbar.</li>
+	<li><i>paddingLeft:</i>Extra padding on the left side for the list items. This value has no effect if the rendererInstanceName property is set. Does not affect the automatically generated scrollbar.</li>
+	<li><i>paddingRight:</i>Extra padding on the right side for the list items. This value has no effect if the rendererInstanceName property is set. Does not affect the automatically generated scrollbar.</li>
+	<li><i>thumbOffsetTop:</i>Scrollbar thumb top offset. This property has no effect if the list does not automatically create a scrollbar instance.</li>
+	<li><i>thumbOffsetBottom:</i>Scrollbar thumb bottom offset. This property has no effect if the list does not automatically create a scrollbar instance.</li>
+	<li><i>thumbSizeFactor:</i>Page size factor for the scrollbar thumb. A value greater than 1.0 will increase the thumb size by the given factor. This positive value has no effect if a scrollbar is not attached to the list.
+	<li><i>enableInitCallback</i>: If set to true, _global.CLIK_loadCallback() will be fired when a component is loaded and _global.CLIK_unloadCallback will be called when the component is unloaded. These methods receive the instance name, target path, and a reference the component as parameters.  _global.CLIK_loadCallback and _global.CLIK_unloadCallback should be overriden from the game engine using GFx FunctionObjects.</li>
+	<li><i>soundMap</i>: Mapping between events and sound process. When an event is fired, the associated sound process will be fired via _global.gfxProcessSound, which should be overriden from the game engine using GFx FunctionObjects.</li></ul>
+	
+	<b>States</b>
+	The ScrollingList component supports three states based on its focused and disabled properties. <ul>
+	<li>default or enabled state.</li>
+	<li>focused state, that typically highlights the component’s border area.</li>
+	<li>disabled state.</li></ul>
+	
+	<b>Events</b>
+	All event callbacks receive a single Object parameter that contains relevant information about the event. The following properties are common to all events. <ul>
+	<li><i>type</i>: The event type.</li>
+	<li><i>target</i>: The target that generated the event.</li></ul>
+		
+	The events generated by the ScrollingList component are listed below. The properties listed next to the event are provided in addition to the common properties.<ul>
+	<li><i>show</i>: The component’s visible property has been set to true at runtime.</li>
+	<li><i>hide</i>: The component’s visible property has been set to false at runtime.</li>
+	<li><i>focusIn</i>: The component has received focus.</li>
+	<li><i>focusOut</i>: The component has lost focus.</li>
+	<li><i>change</i>: The selected index has changed.<ul>
+		<li><i>index</i>: The new selected index. Number type. Values 0 to number of list items minus 1. </li></ul></li>
+	<li><i>itemPress</i>: The list item has been pressed down.<ul>
+		<li><i>renderer</i>: The list item that was pressed. CLIK Button type.</li>
+		<li><i>item</i>: The data associated with the list item. This value is retrieved from the list’s DataProvider. AS2 Object type.</li>
+		<li><i>index</i>: The index of the list item relative to the list’s DataProvider. Values 0 to number of list items minus 1. </li>
+		<li><i>controllerIdx</i>: The index of the mouse cursor used to generate the event (applicable only for multi-mouse-cursor environments). Number type. Values 0 to 3.</li></ul></li>
+	<li><i>itemClick</i>: A list item has been clicked.<ul>
+		<li><i>renderer</i>: The list item that was clicked. CLIK Button type. </li>
+		<li><i>item</i>: The data associated with the list item. This value is retrieved from the list’s DataProvider. AS2 Object type.</li>
+		<li><i>index</i>: The index of the list item relative to the list’s DataProvider. Values 0 to number of list items minus 1. </li>
+		<li><i>controllerIdx</i>: The index of the mouse cursor used to generate the event (applicable only for multi-mouse-cursor environments). Number type. Values 0 to 3.</li></ul></li>
+	<li><i>itemDoubleClick</i>: The mouse cursor has been double clicked.<ul>
+		<li><i>renderer</i>: The list item was double clicked. CLIK Button type. </li>
+		<li><i>item</i>: The data associated with the list item. This value is retrieved from the list’s DataProvider. AS2 Object type.</li>
+		<li><i>index</i>: The index of the list item relative to the list’s DataProvider. Values 0 to number of list items minus 1. </li>
+		<li><i>controllerIdx</i>: The index of the mouse cursor used to generate the event (applicable only for multi-mouse-cursor environments). Number type. Values 0 to 3.</li></ul></li>
+	<li><i>itemRollOver</i>: The mouse cursor has rolled over a list item.<ul>
+		<li><i>renderer</i>: The list item that was rolled over.CLIK Button type. </li>
+		<li><i>item</i>: The data associated with the list item. This value is retrieved from the list’s DataProvider. AS2 Object type.</li>
+		<li><i>index</i>: The index of the list item relative to the list’s DataProvider. Values 0 to number of list items minus 1. </li>
+		<li><i>controllerIdx</i>: The index of the mouse cursor used to generate the event (applicable only for multi-mouse-cursor environments). Number type. Values 0 to 3.</li></ul></li>
+	<li><i>itemRollOut</i>: The mouse cursor has rolled out of a list item.<ul>
+		<li><i>renderer</i>: The list item that was rolled out of.CLIK Button type. </li>
+		<li><i>item</i>: The data associated with the list item. This value is retrieved from the list’s DataProvider. AS2 Object type.</li>
+		<li><i>index</i>: The index of the list item relative to the list’s DataProvider.Values 0 to number of list items minus 1. </li>
+		<li><i>controllerIdx</i>: The index of the mouse cursor used to generate the event (applicable only for multi-mouse-cursor environments). Number type. Values 0 to 3.</li></ul></li></ul>
+ */
+intrinsic class gfx.controls.ScrollingList extends CoreList
+{
+	/** 
+	 * Determines how focus "wraps" when the end or beginning of the component is reached.
+	 	<ul>
+		<li>"normal": The focus will leave the component when it reaches the end of the data</li>
+		<li>"wrap": The selection will wrap to the beginning or end.</li>
+		<li>"stick": The selection will stop when it reaches the end of the data.</li>
+		</ul>
+	 */
+	public var wrapping : String;
+	/** Determines if the "rowCount" property is applied directly, or converted by the component. ScrollingList does not use autoRowCount, but includes it for consistency. **/
+	public var autoRowCount : Boolean;
+	private var _rowHeight : Number;
+	private var _scrollPosition : Number;
+	private var _rowCount : Number;
+	private var totalRenderers : Number;
+	private var inspectableScrollBar : Object;
+	private var autoScrollBar : Boolean;
+	private var margin : Number;
+	private var paddingTop : Number;
+	private var paddingBottom : Number;
+	private var paddingLeft : Number;
+	private var paddingRight : Number;
+	private var thumbOffsetTop : Number;
+	private var thumbOffsetBottom : Number;
+	private var thumbSizeFactor : Number;
+	private var _scrollBar : MovieClip;
+
+	/**
+	 * The component to use to scroll the list. The {@code scrollBar} can be set as a library linkage ID, an instance name on the stage relative to the component, or a reference to an existing ScrollBar elsewhere in the application. The automatic behaviour in this component only supports a vertical scrollBar, positioned on the top right, the entire height of the component.
+	 * @see ScrollBar
+	 * @see ScrollIndicator
+	 */
+	public function get scrollBar() : Object;
+	public function set scrollBar(value:Object) : Void;
+
+	public function get rowHeight() : Number;
+	public function set rowHeight(value:Number) : Void;
+
+	/**
+	 * The vertical scroll position of the list.
+	 */
+	public function get scrollPosition() : Number;
+	public function set scrollPosition(value:Number) : Void;
+
+	/**
+	 * The selected index of the {@code dataProvider}.  The {@code itemRenderer} at the {@code selectedIndex} will be set to {@code selected=true}.
+	 */
+	public function get selectedIndex() : Number;
+	public function set selectedIndex(value:Number) : Void;
+
+	public function get disabled() : Boolean;
+	public function set disabled(value:Boolean) : Void;
+
+	/**
+	 * The amount of visible rows.  Setting this property will immediately change the height of the component to accomodate the specified amount of rows. The {@code rowCount} property is not stored or maintained.
+	 */
+	public function get rowCount() : Number;
+	public function set rowCount(value:Number) : Void;
+
+	public function get availableWidth() : Number;
+
+
+	/**
+	 * The constructor is called when a ScrollingList or a sub-class of ScrollingList is instantiated on stage or by using {@code attachMovie()} in ActionScript. This component can <b>not</b> be instantiated using {@code new} syntax. When creating new components that extend ScrollingList, ensure that a {@code super()} call is made first in the constructor.
+	 */
+	public function ScrollingList();
+
+	/**
+	 * Scroll the list to the specified index.  If the index is currently visible, the position will not change. The scroll position will only change the minimum amount it has to to display the item at the specified index.
+	 * @param index The index to scroll to.
+	 */
+	public function scrollToIndex(index:Number) : Void;
+
+	public function invalidateData() : Void;
+
+	public function handleInput(details:InputDetails, pathToFocus:Array) : Boolean;
+
+	/** @exclude */
+	public function toString() : String;
+
+	private function configUI() : Void;
+
+	private function draw() : Void;
+
+	private function drawLayout(rendererWidth:Number, rendererHeight:Number) : Void;
+
+	private function drawScrollBar() : Void;
+
+	private function changeFocus() : Void;
+
+	private function populateData(data:Array) : Void;
+
+	private function handleScroll(event:Object) : Void;
+
+	private function updateScrollBar() : Void;
+
+	private function getRendererAt(index:Number) : MovieClip;
+
+	private function scrollWheel(delta:Number) : Void;
+
+	private function setState() : Void;
+
+}
